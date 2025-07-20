@@ -2,6 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import CanvasSection from './CanvasSection';
+import StackViewer from './StackViewer';
+import PlaybackProgress from './PlaybackProgress';
 import AchievementGarden from './AchievementGarden';
 import Notification from './Notification';
 import { useSensorySketchpad } from '../hooks/useSensorySketchpad';
@@ -19,6 +21,17 @@ const SensorySketchpad: React.FC = () => {
     showGarden,
     achievements,
     notification,
+    // Stack-related state
+    stack,
+    playbackState,
+    stackInfo,
+    // Stack operations
+    handleAddToStack,
+    handlePlayStack,
+    handleRemoveFromStack,
+    setActiveCanvas,
+    clearStack,
+    updateCanvasName,
     canvasRef,
     handleColorSelect,
     handleBrushSelect,
@@ -113,6 +126,16 @@ const SensorySketchpad: React.FC = () => {
               currentNote={currentNote}
               onColorSelect={handleColorSelect}
               onPatternLoad={handlePatternLoad}
+              // Stack props
+              stack={stack}
+              playbackState={playbackState}
+              stackInfo={stackInfo}
+              onAddToStack={handleAddToStack}
+              onPlayStack={handlePlayStack}
+              onRemoveFromStack={handleRemoveFromStack}
+              onSetActiveCanvas={setActiveCanvas}
+              onUpdateCanvasName={updateCanvasName}
+              onClearStack={clearStack}
             />
 
             <CanvasSection
@@ -125,8 +148,21 @@ const SensorySketchpad: React.FC = () => {
               onBrushSizeChange={handleBrushSizeChange}
               onPlayToggle={handlePlayToggle}
               onClearCanvas={handleClearCanvas}
+              // Stack props
+              hasDrawing={hasDrawing}
+              stackInfo={stackInfo}
+              playbackState={playbackState}
+              onAddToStack={handleAddToStack}
+              onPlayStack={handlePlayStack}
             />
           </div>
+          
+          {playbackState.isPlaying && (
+            <PlaybackProgress
+              playbackState={playbackState}
+              stack={stack}
+            />
+          )}
         </main>
 
         {showGarden && (

@@ -3,19 +3,8 @@ import { AudioManager } from '../utils/AudioManager';
 import { CanvasManager } from '../utils/CanvasManager';
 import { AchievementManager } from '../utils/AchievementManager';
 import { PatternGenerator } from '../utils/PatternGenerator';
-
-interface Achievement {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  unlocked: boolean;
-}
-
-interface Notification {
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-}
+import { useStackManager } from './useStackManager';
+import { Achievement, Notification } from '../types';
 
 export const useSensorySketchpad = () => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -28,6 +17,20 @@ export const useSensorySketchpad = () => {
   const [showGarden, setShowGarden] = useState(false);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [notification, setNotification] = useState<Notification | null>(null);
+
+  // Stack management
+  const {
+    stack,
+    playbackState,
+    addToStack,
+    removeFromStack,
+    setActiveCanvas,
+    clearStack,
+    updateCanvasName,
+    startStackPlayback,
+    stopPlayback: stopStackPlayback,
+    getStackInfo
+  } = useStackManager();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioManagerRef = useRef<AudioManager | null>(null);
@@ -149,6 +152,7 @@ export const useSensorySketchpad = () => {
       // Stop playback
       setIsPlaying(false);
       audioManagerRef.current?.stopAllNotes();
+      stopStackPlayback();
       if (playbackTimeoutRef.current) {
         clearTimeout(playbackTimeoutRef.current);
         playbackTimeoutRef.current = null;
@@ -184,6 +188,46 @@ export const useSensorySketchpad = () => {
       }, duration * 1000);
     }
   }, [isPlaying, updateAchievements]);
+
+  // Handle add to stack
+  const handleAddToStack = useCallback(() => {
+    if (!canvasManagerRef.current?.hasDrawing() || !canvasRef.current) {
+      setNotification({
+        message: 'Draw something first to add to stack!',
+        type: 'warning'
+      });
+      return;
+    }
+
+    const drawingData = canvasManagerRef.current.getDrawingData();
+    const stackInfo = getStackInfo();
+    const canvasName = `Canvas ${stackInfo.size + 1}`;
+    
+    const addedCanvas = addToStack(drawingData, canvasRef.current, canvasName);
+    
+    if (addedCanvas) {
+      setNotification({
+        message: `Added "${addedCanvas.name}" to stack!`,
+        type: 'success'
+      });
+    }
+  }, [addToStack, getStackInfo]);
+
+  // Handle play stack
+  const handlePlayStack = useCallback(() => {
+    if (!audioManagerRef.current || !canvasManagerRef.current || !canvasRef.current) return;
+    
+    const stackInfo = getStackInfo();
+    if (stackInfo.isEmpty) {
+      setNotification({
+        message: 'No canvases in stack to play!',
+        type: 'info'
+      });
+      return;
+    }
+
+    startStackPlayback(audioManagerRef.current, canvasManagerRef.current, canvasRef.current);
+  }, [startStackPlayback, getStackInfo]);
 
   // Handle clear canvas
   const handleClearCanvas = useCallback(() => {
@@ -233,6 +277,17 @@ export const useSensorySketchpad = () => {
     setNotification(null);
   }, []);
 
+  // Handle stack operations
+  const handleRemoveFromStack = useCallback((canvasId: string) => {
+    const removed = removeFromStack(canvasId);
+    if (removed) {
+      setNotification({
+        message: 'Canvas removed from stack',
+        type: 'info'
+      });
+    }
+  }, [removeFromStack]);
+
   return {
     isPlaying,
     hasDrawing,
@@ -244,6 +299,17 @@ export const useSensorySketchpad = () => {
     showGarden,
     achievements,
     notification,
+    // Stack-related state
+    stack,
+    playbackState,
+    stackInfo: getStackInfo(),
+    // Stack operations
+    handleAddToStack,
+    handlePlayStack,
+    handleRemoveFromStack,
+    setActiveCanvas,
+    clearStack,
+    updateCanvasName,
     canvasRef,
     handleColorSelect,
     handleBrushSelect,

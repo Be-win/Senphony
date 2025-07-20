@@ -1,6 +1,8 @@
 import React, { forwardRef } from 'react';
 import Canvas from './Canvas';
 import Controls from './Controls';
+import StackControls from './StackControls';
+import { PlaybackState } from '../types';
 
 interface CanvasSectionProps {
   isPlaying: boolean;
@@ -11,6 +13,11 @@ interface CanvasSectionProps {
   onBrushSizeChange: (size: number) => void;
   onPlayToggle: () => void;
   onClearCanvas: () => void;
+  // Stack props
+  stackInfo: { size: number; isEmpty: boolean; totalDuration: number };
+  playbackState: PlaybackState;
+  onAddToStack: () => void;
+  onPlayStack: () => void;
 }
 
 const CanvasSection = forwardRef<HTMLCanvasElement, CanvasSectionProps>(({
@@ -21,7 +28,12 @@ const CanvasSection = forwardRef<HTMLCanvasElement, CanvasSectionProps>(({
   onBrushSelect,
   onBrushSizeChange,
   onPlayToggle,
-  onClearCanvas
+  onClearCanvas,
+  // Stack props
+  stackInfo,
+  playbackState,
+  onAddToStack,
+  onPlayStack
 }, ref) => {
   return (
     <div className="canvas-section">
@@ -35,6 +47,14 @@ const CanvasSection = forwardRef<HTMLCanvasElement, CanvasSectionProps>(({
         onBrushSizeChange={onBrushSizeChange}
         onPlayToggle={onPlayToggle}
         onClearCanvas={onClearCanvas}
+      />
+      <StackControls
+        hasDrawing={hasDrawing}
+        stackSize={stackInfo.size}
+        playbackState={playbackState}
+        onAddToStack={onAddToStack}
+        onPlayStack={onPlayStack}
+        onStopPlayback={() => {}} // Will be handled by the main playback system
       />
     </div>
   );
