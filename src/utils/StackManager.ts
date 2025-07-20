@@ -39,7 +39,7 @@ export class StackManager {
 
     // Add new canvas as active
     newCanvas.isActive = true;
-    this.stack.push(newCanvas);
+    this.stack = [...this.stack, newCanvas]; // Use new array
 
     this.saveStack();
     
@@ -60,18 +60,20 @@ export class StackManager {
     if (index === -1) return false;
 
     const removedCanvas = this.stack[index];
-    this.stack.splice(index, 1);
+    const newStack = [...this.stack];
+    newStack.splice(index, 1);
 
     // Update stack order for remaining canvases
-    this.stack.forEach((canvas, idx) => {
+    newStack.forEach((canvas, idx) => {
       canvas.stackOrder = idx;
     });
 
     // If we removed the active canvas, make the last one active
-    if (removedCanvas.isActive && this.stack.length > 0) {
-      this.stack[this.stack.length - 1].isActive = true;
+    if (removedCanvas.isActive && newStack.length > 0) {
+      newStack[newStack.length - 1].isActive = true;
     }
 
+    this.stack = newStack;
     this.saveStack();
     
     if (this.callbacks.onStackUpdate) {
@@ -102,19 +104,12 @@ export class StackManager {
 
   // Set active canvas
   setActiveCanvas(canvasId: string): boolean {
-    const canvas = this.stack.find(c => c.id === canvasId);
-    if (!canvas) return false;
-
-    this.stack.forEach(c => {
-      c.isActive = c.id === canvasId;
-    });
-
+    console.log('DEBUG: setActiveCanvas called for', canvasId, 'Current stack:', this.stack, 'Callback:', !!this.callbacks.onStackUpdate);
+    this.stack = this.stack.map(c => ({ ...c, isActive: c.id === canvasId }));
     this.saveStack();
-    
     if (this.callbacks.onStackUpdate) {
       this.callbacks.onStackUpdate([...this.stack]);
     }
-
     return true;
   }
 
@@ -122,7 +117,6 @@ export class StackManager {
   clearStack(): void {
     this.stack = [];
     this.saveStack();
-    
     if (this.callbacks.onStackUpdate) {
       this.callbacks.onStackUpdate([]);
     }
@@ -140,29 +134,21 @@ export class StackManager {
 
   // Move canvas in stack order
   moveCanvas(canvasId: string, newPosition: number): boolean {
-    const canvas = this.stack.find(c => c.id === canvasId);
-    if (!canvas || newPosition < 0 || newPosition >= this.stack.length) {
+    const currentIndex = this.stack.findIndex(c => c.id === canvasId);
+    if (currentIndex === -1 || newPosition < 0 || newPosition >= this.stack.length) {
       return false;
     }
-
-    // Remove canvas from current position
-    const currentIndex = this.stack.findIndex(c => c.id === canvasId);
-    this.stack.splice(currentIndex, 1);
-
-    // Insert at new position
-    this.stack.splice(newPosition, 0, canvas);
-
-    // Update stack order
-    this.stack.forEach((c, index) => {
+    const newStack = [...this.stack];
+    const [canvas] = newStack.splice(currentIndex, 1);
+    newStack.splice(newPosition, 0, canvas);
+    newStack.forEach((c, index) => {
       c.stackOrder = index;
     });
-
+    this.stack = newStack;
     this.saveStack();
-    
     if (this.callbacks.onStackUpdate) {
       this.callbacks.onStackUpdate([...this.stack]);
     }
-
     return true;
   }
 

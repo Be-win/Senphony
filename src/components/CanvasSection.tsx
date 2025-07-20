@@ -18,6 +18,9 @@ interface CanvasSectionProps {
   playbackState: PlaybackState;
   onAddToStack: () => void;
   onPlayStack: () => void;
+  onStopStack: () => void;
+  playbackSpeed?: number;
+  setPlaybackSpeed?: (speed: number) => void;
 }
 
 const CanvasSection = forwardRef<HTMLCanvasElement, CanvasSectionProps>(({
@@ -33,7 +36,10 @@ const CanvasSection = forwardRef<HTMLCanvasElement, CanvasSectionProps>(({
   stackInfo,
   playbackState,
   onAddToStack,
-  onPlayStack
+  onPlayStack,
+  onStopStack,
+  playbackSpeed,
+  setPlaybackSpeed
 }, ref) => {
   return (
     <div className="canvas-section">
@@ -54,7 +60,9 @@ const CanvasSection = forwardRef<HTMLCanvasElement, CanvasSectionProps>(({
         playbackState={playbackState}
         onAddToStack={onAddToStack}
         onPlayStack={onPlayStack}
-        onStopPlayback={() => {}} // Will be handled by the main playback system
+        onStopPlayback={onStopStack}
+        playbackSpeed={playbackSpeed}
+        setPlaybackSpeed={setPlaybackSpeed}
       />
     </div>
   );

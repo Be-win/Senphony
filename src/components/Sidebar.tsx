@@ -9,7 +9,11 @@ interface SidebarProps {
   currentColor: string;
   currentNote: string;
   onColorSelect: (color: string, note: string) => void;
-  onPatternLoad: (patternId: string) => void;
+  onLoadDemoSong: () => void;
+  onLoadMaryDemo?: () => void;
+  onLoadSoothingDemo?: () => void;
+  onLoadContinuousDemo?: () => void;
+  onLoadPattern?: (patternId: string) => void; // Add pattern generator support
   // Stack props
   stack: StackedCanvas[];
   playbackState: PlaybackState;
@@ -29,7 +33,11 @@ const Sidebar: React.FC<SidebarProps> = ({
   currentColor,
   currentNote,
   onColorSelect,
-  onPatternLoad,
+  onLoadDemoSong,
+  onLoadMaryDemo,
+  onLoadSoothingDemo,
+  onLoadContinuousDemo,
+  onLoadPattern, // Add pattern generator prop
   // Stack props
   stack,
   playbackState,
@@ -52,18 +60,14 @@ const Sidebar: React.FC<SidebarProps> = ({
         currentNote={currentNote}
         onColorSelect={onColorSelect}
       />
-      <PatternPalette onPatternLoad={onPatternLoad} />
-      {/* Only show StackViewer if not playing */}
-      {!playbackState.isPlaying && (
-        <StackViewer
-          stack={stack}
-          currentPlayingId={playbackState.currentCanvasId}
-          onRemoveFromStack={onRemoveFromStack}
-          onSetActiveCanvas={onSetActiveCanvas}
-          onUpdateCanvasName={onUpdateCanvasName}
-          onClearStack={onClearStack}
-        />
-      )}
+      <PatternPalette
+        onLoadDemoSong={onLoadDemoSong}
+        onLoadMaryDemo={onLoadMaryDemo}
+        onLoadSoothingDemo={onLoadSoothingDemo}
+        onLoadContinuousDemo={onLoadContinuousDemo}
+        onLoadPattern={onLoadPattern} // Pass pattern generator prop
+      />
+      {/* StackViewer removed from Sidebar; now always in right sidebar */}
     </aside>
   );
 };

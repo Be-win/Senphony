@@ -20,7 +20,8 @@ export class PatternGenerator {
     descending: this.generateDescendingPattern.bind(this),
     wave: this.generateWavePattern.bind(this),
     mountain: this.generateMountainPattern.bind(this),
-    spiral: this.generateSpiralPattern.bind(this)
+    spiral: this.generateSpiralPattern.bind(this),
+    rain: this.generateRainPattern.bind(this)
   };
 
   private patternInfo: Record<string, { name: string; description: string; icon: string }> = {
@@ -48,6 +49,11 @@ export class PatternGenerator {
       name: 'Spiral Dance',
       description: 'A swirling spiral pattern',
       icon: '🌀'
+    },
+    rain: {
+      name: 'Gentle Rain',
+      description: 'Soft raindrops creating peaceful music',
+      icon: '🌧️'
     }
   };
 
@@ -166,6 +172,66 @@ export class PatternGenerator {
         });
       }
     }
+    return data;
+  }
+
+  private generateRainPattern(): PatternData[] {
+    const data: PatternData[] = [];
+    const canvasWidth = 800;
+    const canvasHeight = 600;
+    const colors = ['#4a90e2', '#5ba3f5', '#6cb4ff', '#7dc5ff', '#8ed6ff', '#9fe7ff'];
+    const notes = ['C', 'D', 'E', 'G', 'A', 'C2'];
+
+    // Generate scattered raindrops across the canvas
+    for (let i = 0; i < 80; i++) {
+      const x = Math.random() * (canvasWidth - 100) + 50;
+      const y = Math.random() * (canvasHeight - 100) + 50;
+
+      // Create clusters of drops for more natural rain effect
+      const clusterSize = Math.random() < 0.3 ? 2 + Math.floor(Math.random() * 3) : 1;
+
+      for (let j = 0; j < clusterSize; j++) {
+        const offsetX = x + (Math.random() - 0.5) * 30;
+        const offsetY = y + (Math.random() - 0.5) * 30;
+
+        // Ensure drops stay within canvas bounds
+        if (offsetX >= 50 && offsetX <= canvasWidth - 50 &&
+            offsetY >= 50 && offsetY <= canvasHeight - 50) {
+
+          // Higher notes for drops higher on canvas (like rain falling)
+          const heightRatio = 1 - (offsetY - 50) / (canvasHeight - 100);
+          const noteIndex = Math.floor(heightRatio * notes.length);
+          const colorIndex = Math.floor(heightRatio * colors.length);
+
+          data.push({
+            x: offsetX,
+            y: offsetY,
+            color: colors[Math.min(colorIndex, colors.length - 1)],
+            note: notes[Math.min(noteIndex, notes.length - 1)]
+          });
+        }
+      }
+    }
+
+    // Add some gentle horizontal lines to suggest rain streaks
+    for (let i = 0; i < 15; i++) {
+      const startX = Math.random() * (canvasWidth - 200) + 50;
+      const y = Math.random() * (canvasHeight - 100) + 50;
+
+      for (let x = startX; x < startX + 60 && x < canvasWidth - 50; x += 8) {
+        const heightRatio = 1 - (y - 50) / (canvasHeight - 100);
+        const noteIndex = Math.floor(heightRatio * notes.length);
+        const colorIndex = Math.floor(heightRatio * colors.length);
+
+        data.push({
+          x: x + Math.random() * 4 - 2, // Add slight randomness
+          y: y + Math.random() * 4 - 2,
+          color: colors[Math.min(colorIndex, colors.length - 1)],
+          note: notes[Math.min(noteIndex, notes.length - 1)]
+        });
+      }
+    }
+
     return data;
   }
 }

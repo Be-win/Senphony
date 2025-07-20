@@ -8,6 +8,9 @@ interface StackViewerProps {
   onSetActiveCanvas: (canvasId: string) => void;
   onUpdateCanvasName: (canvasId: string, newName: string) => void;
   onClearStack: () => void;
+  moveCanvasInStack: (canvasId: string, newPosition: number) => void;
+  playbackSpeed: number;
+  setPlaybackSpeed: (speed: number) => void;
 }
 
 const StackViewer: React.FC<StackViewerProps> = ({
@@ -16,7 +19,10 @@ const StackViewer: React.FC<StackViewerProps> = ({
   onRemoveFromStack,
   onSetActiveCanvas,
   onUpdateCanvasName,
-  onClearStack
+  onClearStack,
+  moveCanvasInStack,
+  playbackSpeed,
+  setPlaybackSpeed
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -166,7 +172,7 @@ const StackViewer: React.FC<StackViewerProps> = ({
             <div className="stack-item-actions">
               <button
                 className={`btn btn-small ${canvas.isActive ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => onSetActiveCanvas(canvas.id)}
+                onClick={() => { console.log('DEBUG: Set as active button clicked for', canvas.id); onSetActiveCanvas(canvas.id); }}
                 aria-label={canvas.isActive ? 'Currently active canvas' : 'Set as active canvas'}
                 title={canvas.isActive ? 'Currently active' : 'Set as active'}
                 disabled={canvas.isActive}
@@ -190,6 +196,22 @@ const StackViewer: React.FC<StackViewerProps> = ({
       <div className="stack-summary">
         <div className="total-duration">
           Total: {stack.reduce((sum, canvas) => sum + canvas.duration, 0)}s
+        </div>
+        <div className="playback-speed-control" style={{ marginTop: 8 }}>
+          <label htmlFor="playbackSpeedSlider" style={{ fontSize: '0.8rem', color: '#aaa' }}>
+            Playback Speed: <b>{playbackSpeed.toFixed(1)}x</b>
+          </label>
+          <input
+            id="playbackSpeedSlider"
+            type="range"
+            min={0.5}
+            max={2.0}
+            step={0.1}
+            value={playbackSpeed}
+            onChange={e => setPlaybackSpeed(Number(e.target.value))}
+            style={{ width: '100%' }}
+            aria-label="Playback speed"
+          />
         </div>
       </div>
     </section>

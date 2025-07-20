@@ -19,42 +19,47 @@ export class ClassicalInstruments {
     piano: {
       oscillatorType: 'triangle' as OscillatorType,
       filterType: 'lowpass' as BiquadFilterType,
-      filterFrequency: 4,
+      filterFrequency: 2000, // Fixed frequency instead of multiplier
       attack: 0.01,
       decay: 0.2,
       sustain: 0.1,
       release: 0.3,
       harmonics: [
-        { frequency: 2, gain: 0.3, type: 'sine' as OscillatorType },
-        { frequency: 3, gain: 0.1, type: 'triangle' as OscillatorType }
+        { frequency: 2, gain: 0.15, type: 'sine' as OscillatorType }, // Reduced gain
+        { frequency: 3, gain: 0.05, type: 'triangle' as OscillatorType } // Reduced gain
       ],
-      effects: { reverb: true }
+      effects: { reverb: true },
+      masterGain: 0.3 // Added master gain control
     },
     violin: {
       oscillatorType: 'sawtooth' as OscillatorType,
       filterType: 'lowpass' as BiquadFilterType,
-      filterFrequency: 2,
-      attack: 0.01,
-      decay: 0.05,
-      sustain: 0.5,
-      release: 0.3,
+      filterFrequency: 1500, // Fixed frequency for smoother sound
+      attack: 0.05, // Smoother attack for flowing sounds
+      decay: 0.1,
+      sustain: 0.6,
+      release: 0.4, // Longer release for ambient feel
       harmonics: [
-        { frequency: 2, gain: 0.2, type: 'sine' as OscillatorType }
+        { frequency: 2, gain: 0.08, type: 'sine' as OscillatorType }, // Reduced gain significantly
+        { frequency: 3, gain: 0.04, type: 'triangle' as OscillatorType } // Added third harmonic with low gain
       ],
-      effects: { vibrato: false, reverb: true } // vibrato temporarily disabled
+      effects: { vibrato: false, reverb: true },
+      masterGain: 0.25 // Lower master gain to prevent clipping
     },
     flute: {
       oscillatorType: 'sine' as OscillatorType,
       filterType: 'lowpass' as BiquadFilterType,
-      filterFrequency: 3,
-      attack: 0.01,
-      decay: 0.05,
-      sustain: 0.5,
-      release: 0.3,
+      filterFrequency: 1800, // Lower cutoff for smoother, less harsh sound
+      attack: 0.03, // Slightly longer attack for even gentler onset
+      decay: 0.12, // Longer decay for more natural envelope
+      sustain: 0.5, // Lower sustain to reduce overall volume
+      release: 0.6, // Even longer release for flowing effect
       harmonics: [
-        { frequency: 2, gain: 0.1, type: 'sine' as OscillatorType }
+        { frequency: 2, gain: 0.03, type: 'sine' as OscillatorType }, // Much lower gain for cleaner sound
+        { frequency: 3, gain: 0.015, type: 'sine' as OscillatorType } // Changed to 3rd harmonic with very low gain
       ],
-      effects: { reverb: true }
+      effects: { reverb: true },
+      masterGain: 0.2 // Reduced master gain to prevent any clipping
     }
   };
 
@@ -75,6 +80,11 @@ export class ClassicalInstruments {
     }
   }
 
+  // Helper to clamp time for setValueAtTime
+  private clampTime(t: number, now: number) {
+    return isFinite(t) && t >= now ? t : now + 0.01;
+  }
+
   async playNote(note: string, duration = 0.3, delay = 0): Promise<InstrumentSound | null> {
     if (!this.audioContext || !this.masterGain) return null;
     
@@ -85,9 +95,13 @@ export class ClassicalInstruments {
     if (!config) return null;
     const frequency = this.noteFrequencies[note as keyof typeof this.noteFrequencies];
     if (!frequency) return null;
-    // Add a small buffer to startTime to ensure it's in the future
-    const minStartTime = this.audioContext.currentTime + 0.01;
-    const startTime = Math.max(minStartTime, this.audioContext.currentTime + delay);
+    // Robustly clamp startTime
+    const now = this.audioContext.currentTime;
+    const minStartTime = now + 0.01;
+    let startTime = now + delay;
+    if (!isFinite(startTime) || startTime < minStartTime) {
+      startTime = minStartTime;
+    }
     const endTime = startTime + duration;
     const oscillator = this.audioContext.createOscillator();
     const gainNode = this.audioContext.createGain();
@@ -96,9 +110,10 @@ export class ClassicalInstruments {
     filterNode.connect(gainNode);
     gainNode.connect(this.masterGain);
     oscillator.type = config.oscillatorType;
-    oscillator.frequency.setValueAtTime(frequency, startTime);
+    oscillator.frequency.setValueAtTime(frequency, this.clampTime(startTime, now));
     filterNode.type = config.filterType;
-    filterNode.frequency.setValueAtTime(frequency * config.filterFrequency, startTime);
+    filterNode.frequency.setValueAtTime(config.filterFrequency, this.clampTime(startTime, now)); // Use absolute frequency
+
     const harmonics: OscillatorNode[] = [];
     config.harmonics.forEach((harmonic) => {
       const harmonicOsc = this.audioContext!.createOscillator();
@@ -106,10 +121,10 @@ export class ClassicalInstruments {
       harmonicOsc.connect(harmonicGain);
       harmonicGain.connect(gainNode);
       harmonicOsc.type = harmonic.type;
-      harmonicOsc.frequency.setValueAtTime(frequency * harmonic.frequency, startTime);
-      harmonicGain.gain.setValueAtTime(harmonic.gain, startTime);
-      harmonicOsc.start(startTime);
-      harmonicOsc.stop(endTime);
+      harmonicOsc.frequency.setValueAtTime(frequency * harmonic.frequency, this.clampTime(startTime, now));
+      harmonicGain.gain.setValueAtTime(harmonic.gain, this.clampTime(startTime, now));
+      harmonicOsc.start(this.clampTime(startTime, now));
+      harmonicOsc.stop(this.clampTime(endTime, now));
       harmonics.push(harmonicOsc);
     });
     if (config.effects && 'vibrato' in config.effects && config.effects.vibrato) {
@@ -119,23 +134,20 @@ export class ClassicalInstruments {
       vibratoOsc.connect(vibratoGain);
       vibratoGain.connect(oscillator.frequency);
       vibratoOsc.type = 'sine';
-      vibratoOsc.frequency.setValueAtTime(6, startTime);
-      vibratoGain.gain.setValueAtTime(1, startTime); // Lowered from 2 to 1
-      vibratoOsc.start(startTime);
-      vibratoOsc.stop(endTime);
+      vibratoOsc.frequency.setValueAtTime(6, this.clampTime(startTime, now));
+      vibratoGain.gain.setValueAtTime(1, this.clampTime(startTime, now)); // Lowered from 2 to 1
+      vibratoOsc.start(this.clampTime(startTime, now));
+      vibratoOsc.stop(this.clampTime(endTime, now));
     }
-    gainNode.gain.setValueAtTime(0, startTime);
-    console.log('gainNode.gain at startTime', gainNode.gain.value, 'instrument', this.currentInstrument);
-    gainNode.gain.linearRampToValueAtTime(0.5, startTime + config.attack);
-    console.log('gainNode.gain after attack', gainNode.gain.value, 'instrument', this.currentInstrument);
-    gainNode.gain.linearRampToValueAtTime(config.sustain, startTime + config.attack + config.decay);
-    console.log('gainNode.gain after decay', gainNode.gain.value, 'instrument', this.currentInstrument);
-    gainNode.gain.setValueAtTime(config.sustain, endTime - config.release);
-    console.log('gainNode.gain at sustain', gainNode.gain.value, 'instrument', this.currentInstrument);
-    gainNode.gain.linearRampToValueAtTime(0, endTime);
-    console.log('gainNode.gain at end', gainNode.gain.value, 'instrument', this.currentInstrument);
-    oscillator.start(startTime);
-    oscillator.stop(endTime);
+    gainNode.gain.setValueAtTime(0, this.clampTime(startTime, now));
+    const attackGain = 0.4 * config.masterGain; // Apply master gain scaling
+    gainNode.gain.linearRampToValueAtTime(attackGain, this.clampTime(startTime + config.attack, now));
+    gainNode.gain.linearRampToValueAtTime(config.sustain * config.masterGain, this.clampTime(startTime + config.attack + config.decay, now));
+    gainNode.gain.setValueAtTime(config.sustain * config.masterGain, this.clampTime(endTime - config.release, now));
+    gainNode.gain.linearRampToValueAtTime(0, this.clampTime(endTime, now));
+
+    oscillator.start(this.clampTime(startTime, now));
+    oscillator.stop(this.clampTime(endTime, now));
     const sound: InstrumentSound = {
       oscillator,
       gainNode,
@@ -155,9 +167,15 @@ export class ClassicalInstruments {
       if (sound.delayNode) sound.delayNode.disconnect();
       if (sound.reverbNode) sound.reverbNode.disconnect();
       harmonics.forEach(harmonic => {
-        try { harmonic.disconnect(); } catch (e) {}
+        try {
+          harmonic.disconnect();
+        } catch {
+          // Ignore cleanup errors
+        }
       });
-    } catch (e) {}
+    } catch {
+      // Ignore cleanup errors
+    }
   }
 
   getInstrumentInfo(instrumentId: string) {
@@ -206,4 +224,4 @@ export class ClassicalInstruments {
       this.getInstrumentInfo('flute')
     ].filter(Boolean);
   }
-} 
+}

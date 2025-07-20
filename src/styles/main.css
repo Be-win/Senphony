@@ -822,7 +822,12 @@ body {
 .stack-item.playing {
   border-color: var(--color-accent);
   box-shadow: 0 0 10px rgba(255, 0, 128, 0.3);
-  animation: pulse 1s ease-in-out infinite;
+  animation: pulse-glow 1s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 0, 128, 0.3); opacity: 1; }
+  50% { box-shadow: 0 0 24px 8px rgba(255, 0, 128, 0.5); opacity: 0.92; }
 }
 
 .stack-info {

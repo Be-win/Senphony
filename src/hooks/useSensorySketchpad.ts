@@ -18,6 +18,7 @@ export const useSensorySketchpad = () => {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [notification, setNotification] = useState<Notification | null>(null);
   const [currentInstrument, setCurrentInstrument] = useState('piano');
+  const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
 
   // Stack management
   const {
@@ -38,7 +39,8 @@ export const useSensorySketchpad = () => {
   const canvasManagerRef = useRef<CanvasManager | null>(null);
   const achievementManagerRef = useRef<AchievementManager | null>(null);
   const patternGeneratorRef = useRef<PatternGenerator | null>(null);
-  const playbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const playbackTimeoutRef = useRef<number | null>(null);
+  const stackManagerRef = useRef<import('../utils/StackManager').StackManager | null>(null);
 
   // Initialize managers
   useEffect(() => {
@@ -227,8 +229,17 @@ export const useSensorySketchpad = () => {
       return;
     }
 
-    startStackPlayback(audioManagerRef.current, canvasManagerRef.current, canvasRef.current);
-  }, [startStackPlayback, getStackInfo]);
+    startStackPlayback(audioManagerRef.current, canvasManagerRef.current, canvasRef.current, playbackSpeed);
+  }, [startStackPlayback, getStackInfo, playbackSpeed]);
+
+  // Handle stop stack playback
+  const handleStopStack = useCallback(() => {
+    stopStackPlayback();
+    setNotification({
+      message: 'Stack playback stopped',
+      type: 'info'
+    });
+  }, [stopStackPlayback]);
 
   // Handle clear canvas
   const handleClearCanvas = useCallback(() => {
@@ -295,7 +306,37 @@ export const useSensorySketchpad = () => {
     audioManagerRef.current?.setInstrument(instrumentId);
   }, []);
 
+  // Drag-and-drop rearrange handler
+  const moveCanvasInStack = useCallback((canvasId: string, newPosition: number) => {
+    if (!stackManagerRef.current) return false;
+    return stackManagerRef.current.moveCanvas(canvasId, newPosition);
+  }, []);
+
+  // When the active canvas in the stack changes, load its data into the main canvas
+  useEffect(() => {
+    if (!canvasManagerRef.current) return;
+    const activeCanvas = stack.find(c => c.isActive);
+    console.log('DEBUG: useEffect stack changed. Active canvas:', activeCanvas ? activeCanvas.id : null, stack);
+    if (activeCanvas) {
+      console.log('DEBUG: Loading active canvas into main canvas:', activeCanvas.id);
+      canvasManagerRef.current.clearCanvas();
+      canvasManagerRef.current.loadDrawingData(activeCanvas.data);
+    }
+  }, [stack]);
+
   return {
+    stack,
+    playbackState,
+    addToStack,
+    removeFromStack,
+    setActiveCanvas,
+    clearStack,
+    updateCanvasName,
+    startStackPlayback,
+    stopPlayback: stopStackPlayback,
+    getStackInfo,
+    stackInfo: getStackInfo(),
+    moveCanvasInStack,
     isPlaying,
     hasDrawing,
     currentColor,
@@ -306,18 +347,15 @@ export const useSensorySketchpad = () => {
     showGarden,
     achievements,
     notification,
+    setNotification,
     currentInstrument,
-    // Stack-related state
-    stack,
-    playbackState,
-    stackInfo: getStackInfo(),
-    // Stack operations
+    playbackSpeed,
+    setPlaybackSpeed,
+    // Stack-related handlers
     handleAddToStack,
     handlePlayStack,
+    handleStopStack,
     handleRemoveFromStack,
-    setActiveCanvas,
-    clearStack,
-    updateCanvasName,
     canvasRef,
     handleColorSelect,
     handleBrushSelect,
@@ -325,7 +363,7 @@ export const useSensorySketchpad = () => {
     handleVolumeChange,
     handlePlayToggle,
     handleClearCanvas,
-    handlePatternLoad,
+    // handlePatternLoad,
     handleGardenToggle,
     hideNotification,
     handleInstrumentSelect
