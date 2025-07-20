@@ -4,6 +4,8 @@
 
 Sensory Sketchpad is an innovative web application that transforms visual art into musical compositions. It's designed to be accessible, educational, and fun for users of all ages and abilities.
 
+> 📋 **For detailed accessibility information, see our [Accessibility Guide](ACCESSIBILITY.md)**
+
 ## 🌟 What is Sensory Sketchpad?
 
 Sensory Sketchpad bridges the gap between visual creativity and musical expression. Users draw on a digital canvas, and their strokes are automatically converted into harmonious musical notes using a pentatonic scale. This creates a unique sensory experience where every brushstroke becomes a musical note.
@@ -170,4 +172,4 @@ This application meets:
 
 ---
 
-**Sensory Sketchpad** transforms the way we think about creativity, making music accessible through visual art and providing a unique platform for artistic and musical expression. Whether used for education, therapy, or pure enjoyment, it offers a bridge between visual and auditory creativity that's accessible to everyone. 
+**Sensory Sketchpad** transforms the way we think about creativity, making music accessible through visual art and providing a unique platform for artistic and musical expression. Whether used for education, therapy, or pure enjoyment, it offers a bridge between visual and auditory creativity that's accessible to everyone.
