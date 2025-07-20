@@ -97,45 +97,36 @@ export class AudioManager {
     this.stopAllNotes();
     this.scheduledNotes = [];
 
-    const notes = Object.keys(this.noteFrequencies);
-    const timeStep = playbackDuration / canvasWidth;
-    
-    // Group drawing data by x position
-    const drawingMap = new Map();
-    
-    drawingData.forEach(point => {
-      const x = Math.floor(point.x);
-      if (!drawingMap.has(x)) {
-        drawingMap.set(x, []);
-      }
-      drawingMap.get(x).push(point);
-    });
+    // Sort drawingData by x
+    const sorted = [...drawingData].sort((a, b) => a.x - b.x);
 
-    // Schedule notes based on drawing
-    for (let x = 0; x < canvasWidth; x += 10) { // Sample every 10 pixels
-      const points = drawingMap.get(x);
-      if (points) {
-        // Find the average Y position for this X
-        const avgY = points.reduce((sum: number, point: any) => sum + point.y, 0) / points.length;
-        
-        // Convert Y position to note (top = higher pitch)
-        const noteIndex = Math.floor((1 - avgY / canvasHeight) * notes.length);
-        const note = notes[Math.max(0, Math.min(notes.length - 1, noteIndex))];
-        
-        const delay = (x / canvasWidth) * playbackDuration;
-        const duration = Math.min(0.2, timeStep * 15);
-        
-        this.scheduledNotes.push({
-          note,
-          delay,
-          duration,
-          x,
-          y: avgY
-        });
-        
-        // Use the classical instruments system for note playback
-        await this.classicalInstruments.playNote(note, duration, delay);
+    // Group consecutive points with the same note and close X values
+    let groups: any[][] = [];
+    let currentGroup: any[] = [];
+    for (let i = 0; i < sorted.length; i++) {
+      const point = sorted[i];
+      if (
+        currentGroup.length === 0 ||
+        (Math.abs(point.x - currentGroup[currentGroup.length - 1].x) <= 10 &&
+         point.note === currentGroup[currentGroup.length - 1].note)
+      ) {
+        currentGroup.push(point);
+      } else {
+        groups.push(currentGroup);
+        currentGroup = [point];
       }
+    }
+    if (currentGroup.length > 0) groups.push(currentGroup);
+
+    // For each group, play a single note
+    for (const group of groups) {
+      const startX = group[0].x;
+      const endX = group[group.length - 1].x;
+      const note = group[0].note;
+      const delay = (startX / canvasWidth) * playbackDuration;
+      // Ensure minimum duration for very short lines
+      const duration = Math.max(0.1, ((endX - startX) / canvasWidth) * playbackDuration);
+      await this.classicalInstruments.playNote(note, duration, delay);
     }
 
     return playbackDuration;
