@@ -13,8 +13,8 @@ export const useStackManager = () => {
   });
 
   const stackManagerRef = useRef<StackManager | null>(null);
-  const playbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const playbackTimeoutRef = useRef<number | null>(null);
+  const playbackIntervalRef = useRef<number | null>(null);
 
   // Initialize stack manager
   useEffect(() => {
@@ -53,6 +53,27 @@ export const useStackManager = () => {
     return stackManagerRef.current.addToStack(drawingData, canvasElement, name);
   }, []);
 
+  // Stop playback
+  const stopPlayback = useCallback(() => {
+    if (playbackTimeoutRef.current) {
+      clearTimeout(playbackTimeoutRef.current);
+      playbackTimeoutRef.current = null;
+    }
+
+    if (playbackIntervalRef.current) {
+      clearInterval(playbackIntervalRef.current);
+      playbackIntervalRef.current = null;
+    }
+
+    setPlaybackState(prev => ({
+      ...prev,
+      isPlaying: false,
+      progress: 0,
+      currentCanvasIndex: 0,
+      currentCanvasId: null
+    }));
+  }, []);
+
   // Remove canvas from stack
   const removeFromStack = useCallback((canvasId: string) => {
     if (!stackManagerRef.current) return false;
@@ -63,7 +84,7 @@ export const useStackManager = () => {
     }
     
     return stackManagerRef.current.removeFromStack(canvasId);
-  }, [playbackState]);
+  }, [playbackState]); // Remove stopPlayback from dependencies
 
   // Set active canvas
   const setActiveCanvas = useCallback((canvasId: string) => {
@@ -82,7 +103,7 @@ export const useStackManager = () => {
     }
     
     stackManagerRef.current.clearStack();
-  }, [playbackState]);
+  }, [playbackState]); // Remove stopPlayback from dependencies
 
   // Update canvas name
   const updateCanvasName = useCallback((canvasId: string, newName: string) => {
@@ -93,8 +114,8 @@ export const useStackManager = () => {
 
   // Start stack playback with smooth transitions
   const startStackPlayback = useCallback((
-    audioManager: any,
-    canvasManager: any,
+    audioManager: import('../utils/AudioManager').AudioManager,
+    canvasManager: import('../utils/CanvasManager').CanvasManager,
     canvasElement: HTMLCanvasElement,
     playbackSpeed: number = 1.0
   ) => {
@@ -127,7 +148,6 @@ export const useStackManager = () => {
 
       const currentCanvas = playbackSequence[currentIndex];
       const isFirstCanvas = currentIndex === 0;
-      const isLastCanvas = currentIndex === playbackSequence.length - 1;
 
       setPlaybackState(prev => ({
         ...prev,
@@ -147,7 +167,7 @@ export const useStackManager = () => {
         canvasElement.style.opacity = '1';
       } else {
         // For subsequent canvases, do a quick crossfade (150ms)
-        const fadeOutPromise = fadeCanvas(canvasElement, 'out', 150);
+        fadeCanvas(canvasElement, 'out', 150);
 
         // Start loading new canvas data immediately
         setTimeout(() => {
@@ -155,8 +175,6 @@ export const useStackManager = () => {
           canvasManager.loadDrawingData(currentCanvas.data);
           fadeCanvas(canvasElement, 'in', 150);
         }, 75); // Start loading halfway through fade out
-
-        // Don't wait for visual transition to complete
       }
 
       // Start audio immediately - no waiting for visual transitions
@@ -225,26 +243,6 @@ export const useStackManager = () => {
     });
   };
 
-  // Stop playback
-  const stopPlayback = useCallback(() => {
-    if (playbackTimeoutRef.current) {
-      clearTimeout(playbackTimeoutRef.current);
-      playbackTimeoutRef.current = null;
-    }
-    
-    if (playbackIntervalRef.current) {
-      clearInterval(playbackIntervalRef.current);
-      playbackIntervalRef.current = null;
-    }
-
-    setPlaybackState(prev => ({
-      ...prev,
-      isPlaying: false,
-      progress: 0,
-      currentCanvasIndex: 0,
-      currentCanvasId: null
-    }));
-  }, []);
 
   // Get stack info
   const getStackInfo = useCallback(() => {

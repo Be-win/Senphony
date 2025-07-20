@@ -2,7 +2,6 @@ import React from 'react';
 
 interface ColorPaletteProps {
   currentColor: string;
-  currentNote: string;
   onColorSelect: (color: string, note: string) => void;
 }
 
@@ -22,7 +21,7 @@ const ColorPalette: React.FC<ColorPaletteProps> = ({
   return (
     <section className="color-palette" role="toolbar" aria-label="Musical color palette">
       <h2 className="sr-only">Choose a musical color</h2>
-      {colors.map((colorData, index) => (
+      {colors.map((colorData) => (
         <button
           key={colorData.color}
           className={`color-btn ${currentColor === colorData.color ? 'active' : ''}`}

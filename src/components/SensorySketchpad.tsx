@@ -6,6 +6,7 @@ import StackViewer from './StackViewer';
 import PlaybackProgress from './PlaybackProgress';
 import AchievementGarden from './AchievementGarden';
 import Notification from './Notification';
+import ConfirmationModal from './ConfirmationModal';
 import { useSensorySketchpad } from '../hooks/useSensorySketchpad';
 import { Point } from '../types';
 
@@ -42,7 +43,7 @@ const SensorySketchpad: React.FC = () => {
     handleVolumeChange,
     handlePlayToggle,
     handleClearCanvas,
-    // handlePatternLoad,
+    handlePatternLoad, // Add this to the destructuring
     handleGardenToggle,
     hideNotification,
     // Instrument
@@ -52,6 +53,10 @@ const SensorySketchpad: React.FC = () => {
     addToStack,
     playbackSpeed,
     setPlaybackSpeed,
+    // Confirmation modal
+    showConfirmModal,
+    handleConfirmClear,
+    handleCancelClear,
   } = useSensorySketchpad();
 
   // Handler to load a demo song (multi-canvas stack)
@@ -587,7 +592,7 @@ const SensorySketchpad: React.FC = () => {
         if (noteIndex < phrase.notes.length - 1) {
           const nextNote = phrase.notes[noteIndex + 1];
           const nextTiming = phrase.timings[noteIndex + 1];
-          const nextColor = noteMap[nextNote].color;
+          const nextColor = noteMap[nextNote].color; // Define nextColor
           const nextY = noteMap[nextNote].y;
 
           // Create bridge points between notes
@@ -632,7 +637,7 @@ const SensorySketchpad: React.FC = () => {
           for (let noteIndex = 0; noteIndex < phrase.notes.length; noteIndex++) {
             const note = phrase.notes[noteIndex];
             const timing = phrase.timings[noteIndex];
-            const { color, y } = noteMap[note];
+            const { y } = noteMap[note]; // Remove unused color variable
             const x = 60 + (timing / 3.0) * 560;
 
             if (firstPoint) {
@@ -842,6 +847,7 @@ const SensorySketchpad: React.FC = () => {
               onLoadMaryDemo={handleLoadMaryDemo}
               onLoadSoothingDemo={handleLoadSoothingDemo}
               onLoadContinuousDemo={handleLoadContinuousDemo}
+              onLoadPattern={handlePatternLoad} // Add pattern loading support
               // Stack props
               stack={stack}
               playbackState={playbackState}
@@ -910,6 +916,18 @@ const SensorySketchpad: React.FC = () => {
             onClose={hideNotification}
           />
         )}
+
+        {/* Confirmation modal for clear actions */}
+        <ConfirmationModal
+          isOpen={showConfirmModal}
+          title="Clear Canvas"
+          message="Are you sure you want to clear the canvas? This will erase your musical drawing and cannot be undone."
+          confirmText="Clear Canvas"
+          cancelText="Keep Drawing"
+          onConfirm={handleConfirmClear}
+          onCancel={handleCancelClear}
+          type="warning"
+        />
       </div>
     </>
   );

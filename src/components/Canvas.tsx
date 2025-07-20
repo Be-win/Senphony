@@ -1,3 +1,4 @@
+// @ts-ignore
 import React, { forwardRef, useEffect, useRef, useState } from 'react';
 
 interface CanvasProps {

@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import { forwardRef } from 'react';
 import Canvas from './Canvas';
 import Controls from './Controls';
 import StackControls from './StackControls';
@@ -19,8 +19,6 @@ interface CanvasSectionProps {
   onAddToStack: () => void;
   onPlayStack: () => void;
   onStopStack: () => void;
-  playbackSpeed?: number;
-  setPlaybackSpeed?: (speed: number) => void;
 }
 
 const CanvasSection = forwardRef<HTMLCanvasElement, CanvasSectionProps>(({
@@ -37,9 +35,7 @@ const CanvasSection = forwardRef<HTMLCanvasElement, CanvasSectionProps>(({
   playbackState,
   onAddToStack,
   onPlayStack,
-  onStopStack,
-  playbackSpeed,
-  setPlaybackSpeed
+  onStopStack
 }, ref) => {
   return (
     <div className="canvas-section">
@@ -61,8 +57,6 @@ const CanvasSection = forwardRef<HTMLCanvasElement, CanvasSectionProps>(({
         onAddToStack={onAddToStack}
         onPlayStack={onPlayStack}
         onStopPlayback={onStopStack}
-        playbackSpeed={playbackSpeed}
-        setPlaybackSpeed={setPlaybackSpeed}
       />
     </div>
   );

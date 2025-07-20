@@ -88,6 +88,12 @@ export class ClassicalInstruments {
   async playNote(note: string, duration = 0.3, delay = 0): Promise<InstrumentSound | null> {
     if (!this.audioContext || !this.masterGain) return null;
     
+    // Check if context is closed before proceeding
+    if (this.audioContext.state === 'closed') {
+      console.warn('Cannot play note: AudioContext is closed');
+      return null;
+    }
+
     // Resume context if suspended
     await this.resumeContext();
     
@@ -95,6 +101,7 @@ export class ClassicalInstruments {
     if (!config) return null;
     const frequency = this.noteFrequencies[note as keyof typeof this.noteFrequencies];
     if (!frequency) return null;
+
     // Robustly clamp startTime
     const now = this.audioContext.currentTime;
     const minStartTime = now + 0.01;
@@ -103,60 +110,69 @@ export class ClassicalInstruments {
       startTime = minStartTime;
     }
     const endTime = startTime + duration;
-    const oscillator = this.audioContext.createOscillator();
-    const gainNode = this.audioContext.createGain();
-    const filterNode = this.audioContext.createBiquadFilter();
-    oscillator.connect(filterNode);
-    filterNode.connect(gainNode);
-    gainNode.connect(this.masterGain);
-    oscillator.type = config.oscillatorType;
-    oscillator.frequency.setValueAtTime(frequency, this.clampTime(startTime, now));
-    filterNode.type = config.filterType;
-    filterNode.frequency.setValueAtTime(config.filterFrequency, this.clampTime(startTime, now)); // Use absolute frequency
 
-    const harmonics: OscillatorNode[] = [];
-    config.harmonics.forEach((harmonic) => {
-      const harmonicOsc = this.audioContext!.createOscillator();
-      const harmonicGain = this.audioContext!.createGain();
-      harmonicOsc.connect(harmonicGain);
-      harmonicGain.connect(gainNode);
-      harmonicOsc.type = harmonic.type;
-      harmonicOsc.frequency.setValueAtTime(frequency * harmonic.frequency, this.clampTime(startTime, now));
-      harmonicGain.gain.setValueAtTime(harmonic.gain, this.clampTime(startTime, now));
-      harmonicOsc.start(this.clampTime(startTime, now));
-      harmonicOsc.stop(this.clampTime(endTime, now));
-      harmonics.push(harmonicOsc);
-    });
-    if (config.effects && 'vibrato' in config.effects && config.effects.vibrato) {
-      console.log('Violin vibrato triggered', {note, startTime, endTime});
-      const vibratoOsc = this.audioContext.createOscillator();
-      const vibratoGain = this.audioContext.createGain();
-      vibratoOsc.connect(vibratoGain);
-      vibratoGain.connect(oscillator.frequency);
-      vibratoOsc.type = 'sine';
-      vibratoOsc.frequency.setValueAtTime(6, this.clampTime(startTime, now));
-      vibratoGain.gain.setValueAtTime(1, this.clampTime(startTime, now)); // Lowered from 2 to 1
-      vibratoOsc.start(this.clampTime(startTime, now));
-      vibratoOsc.stop(this.clampTime(endTime, now));
+    try {
+      const oscillator = this.audioContext.createOscillator();
+      const gainNode = this.audioContext.createGain();
+      const filterNode = this.audioContext.createBiquadFilter();
+
+      oscillator.connect(filterNode);
+      filterNode.connect(gainNode);
+      gainNode.connect(this.masterGain);
+
+      oscillator.type = config.oscillatorType;
+      oscillator.frequency.setValueAtTime(frequency, this.clampTime(startTime, now));
+      filterNode.type = config.filterType;
+      filterNode.frequency.setValueAtTime(config.filterFrequency, this.clampTime(startTime, now));
+
+      const harmonics: OscillatorNode[] = [];
+      config.harmonics.forEach((harmonic) => {
+        const harmonicOsc = this.audioContext!.createOscillator();
+        const harmonicGain = this.audioContext!.createGain();
+        harmonicOsc.connect(harmonicGain);
+        harmonicGain.connect(gainNode);
+        harmonicOsc.type = harmonic.type;
+        harmonicOsc.frequency.setValueAtTime(frequency * harmonic.frequency, this.clampTime(startTime, now));
+        harmonicGain.gain.setValueAtTime(harmonic.gain, this.clampTime(startTime, now));
+        harmonicOsc.start(this.clampTime(startTime, now));
+        harmonicOsc.stop(this.clampTime(endTime, now));
+        harmonics.push(harmonicOsc);
+      });
+
+      if (config.effects && 'vibrato' in config.effects && config.effects.vibrato) {
+        console.log('Violin vibrato triggered', {note, startTime, endTime});
+        const vibratoOsc = this.audioContext.createOscillator();
+        const vibratoGain = this.audioContext.createGain();
+        vibratoOsc.connect(vibratoGain);
+        vibratoGain.connect(oscillator.frequency);
+        vibratoOsc.type = 'sine';
+        vibratoOsc.frequency.setValueAtTime(6, this.clampTime(startTime, now));
+        vibratoGain.gain.setValueAtTime(1, this.clampTime(startTime, now));
+        vibratoOsc.start(this.clampTime(startTime, now));
+        vibratoOsc.stop(this.clampTime(endTime, now));
+      }
+
+      gainNode.gain.setValueAtTime(0, this.clampTime(startTime, now));
+      const attackGain = 0.4 * config.masterGain;
+      gainNode.gain.linearRampToValueAtTime(attackGain, this.clampTime(startTime + config.attack, now));
+      gainNode.gain.linearRampToValueAtTime(config.sustain * config.masterGain, this.clampTime(startTime + config.attack + config.decay, now));
+      gainNode.gain.setValueAtTime(config.sustain * config.masterGain, this.clampTime(endTime - config.release, now));
+      gainNode.gain.linearRampToValueAtTime(0, this.clampTime(endTime, now));
+
+      oscillator.start(this.clampTime(startTime, now));
+      oscillator.stop(this.clampTime(endTime, now));
+
+      const sound: InstrumentSound = {
+        oscillator,
+        gainNode,
+        filterNode
+      };
+
+      return sound;
+    } catch (error) {
+      console.warn('Failed to create audio nodes:', error);
+      return null;
     }
-    gainNode.gain.setValueAtTime(0, this.clampTime(startTime, now));
-    const attackGain = 0.4 * config.masterGain; // Apply master gain scaling
-    gainNode.gain.linearRampToValueAtTime(attackGain, this.clampTime(startTime + config.attack, now));
-    gainNode.gain.linearRampToValueAtTime(config.sustain * config.masterGain, this.clampTime(startTime + config.attack + config.decay, now));
-    gainNode.gain.setValueAtTime(config.sustain * config.masterGain, this.clampTime(endTime - config.release, now));
-    gainNode.gain.linearRampToValueAtTime(0, this.clampTime(endTime, now));
-
-    oscillator.start(this.clampTime(startTime, now));
-    oscillator.stop(this.clampTime(endTime, now));
-    const sound: InstrumentSound = {
-      oscillator,
-      gainNode,
-      filterNode
-    };
-    oscillator.onended = () => {
-      this.cleanupSound(sound, harmonics);
-    };
-    return sound;
   }
 
   private cleanupSound(sound: InstrumentSound, harmonics: OscillatorNode[]) {

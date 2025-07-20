@@ -2,26 +2,22 @@
 
 import { ClassicalInstruments } from './ClassicalInstruments';
 
+// Define types for better type safety
+interface Point {
+  x: number;
+  y: number;
+  note: string;
+  color: string;
+}
+
 export class AudioManager {
   private audioContext: AudioContext | null = null;
   private gainNode: GainNode | null = null;
   private isInitialized = false;
   private volume = 0.7;
   private classicalInstruments: ClassicalInstruments;
-  private currentInstrument = 'piano';
-  
-  // Musical note frequencies (pentatonic scale)
-  private noteFrequencies = {
-    'C': 261.63,
-    'D': 293.66,
-    'E': 329.63,
-    'G': 392.00,
-    'A': 440.00,
-    'C2': 523.25  // Higher octave C
-  };
-  
-  private activeOscillators = new Map();
-  private scheduledNotes: any[] = [];
+
+  private activeOscillators = new Map<string, OscillatorNode>();
 
   constructor() {
     this.classicalInstruments = new ClassicalInstruments();
@@ -31,8 +27,10 @@ export class AudioManager {
     if (this.isInitialized) return;
     
     try {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
+      // Handle browser compatibility for AudioContext
+      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      this.audioContext = new AudioContextClass();
+
       // Create main gain node for volume control
       this.gainNode = this.audioContext.createGain();
       this.gainNode.connect(this.audioContext.destination);
@@ -61,48 +59,23 @@ export class AudioManager {
   }
 
   setInstrument(instrumentId: string) {
-    this.currentInstrument = instrumentId;
     this.classicalInstruments.setInstrument(instrumentId);
-  }
-  getCurrentInstrument() {
-    return this.classicalInstruments.getInstrumentInfo(this.currentInstrument);
-  }
-  getAllClassicalInstruments() {
-    return this.classicalInstruments.getAllClassicalInstruments();
-  }
-
-  async playNote(note: string, duration = 0.3, delay = 0) {
-    if (!this.isInitialized || !this.audioContext || !this.gainNode) return;
-    return await this.classicalInstruments.playNote(note, duration, delay);
-  }
-
-  playChord(notes: string[], duration = 0.5, delay = 0) {
-    const notePromises = notes.map(note => this.playNote(note, duration, delay));
-    return Promise.all(notePromises);
-  }
-
-  playMelody(notes: string[], noteDuration = 0.3, gap = 0.1) {
-    notes.forEach((note, index) => {
-      const delay = index * (noteDuration + gap);
-      this.playNote(note, noteDuration, delay);
-    });
   }
 
   // Play notes based on canvas drawing data
-  async playCanvasMusic(drawingData: any[], canvasWidth: number, canvasHeight: number, playbackDuration = 3) {
+  async playCanvasMusic(drawingData: Point[], canvasWidth: number, _canvasHeight: number, playbackDuration = 3) {
     if (!this.isInitialized || !drawingData.length) {
       return 0;
     }
 
     this.stopAllNotes();
-    this.scheduledNotes = [];
 
     // Sort drawingData by x
     const sorted = [...drawingData].sort((a, b) => a.x - b.x);
 
     // Group consecutive points with the same note and close X values
-    let groups: any[][] = [];
-    let currentGroup: any[] = [];
+    const groups: Point[][] = [];
+    let currentGroup: Point[] = [];
     for (let i = 0; i < sorted.length; i++) {
       const point = sorted[i];
       if (
@@ -126,6 +99,7 @@ export class AudioManager {
       const delay = (startX / canvasWidth) * playbackDuration;
       // Ensure minimum duration for very short lines
       const duration = Math.max(0.1, ((endX - startX) / canvasWidth) * playbackDuration);
+
       await this.classicalInstruments.playNote(note, duration, delay);
     }
 
@@ -133,19 +107,18 @@ export class AudioManager {
   }
 
   stopAllNotes() {
-    this.activeOscillators.forEach((oscillator: any) => {
+    this.activeOscillators.forEach((oscillator: OscillatorNode) => {
       try {
         oscillator.stop();
-      } catch (e) {
-        // Already stopped
+      } catch {
+        // Already stopped or never started
       }
     });
     this.activeOscillators.clear();
-    this.scheduledNotes = [];
   }
 
   // Create audio feedback for drawing actions
-  async playDrawingFeedback(note: string, intensity = 1) {
+  async playDrawingFeedback(note: string) {
     if (!this.isInitialized || !this.audioContext || !this.gainNode) return;
     
     const duration = 0.1;

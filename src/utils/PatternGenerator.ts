@@ -91,7 +91,7 @@ export class PatternGenerator {
     const canvasHeight = 600;
     
     for (let x = 50; x < canvasWidth - 50; x += 20) {
-      const y = 100 + (x - 50) * 0.3;
+      const y = (canvasHeight - 100) - (x - 50) * 0.3; // Use canvasHeight for proper positioning
       data.push({ x, y, color: '#ffff00', note: 'C2' });
       data.push({ x: x + 5, y: y + 10, color: '#00ffff', note: 'A' });
       data.push({ x: x + 10, y: y + 20, color: '#ff8000', note: 'G' });

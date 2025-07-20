@@ -1,4 +1,3 @@
-import React from 'react';
 import SensorySketchpad from './components/SensorySketchpad';
 import ErrorBoundary from './components/ErrorBoundary';
 import './styles/main.css';

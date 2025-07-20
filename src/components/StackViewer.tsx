@@ -8,7 +8,6 @@ interface StackViewerProps {
   onSetActiveCanvas: (canvasId: string) => void;
   onUpdateCanvasName: (canvasId: string, newName: string) => void;
   onClearStack: () => void;
-  moveCanvasInStack: (canvasId: string, newPosition: number) => void;
   playbackSpeed: number;
   setPlaybackSpeed: (speed: number) => void;
 }
@@ -20,7 +19,6 @@ const StackViewer: React.FC<StackViewerProps> = ({
   onSetActiveCanvas,
   onUpdateCanvasName,
   onClearStack,
-  moveCanvasInStack,
   playbackSpeed,
   setPlaybackSpeed
 }) => {

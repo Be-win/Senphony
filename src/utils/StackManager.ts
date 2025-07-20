@@ -1,6 +1,6 @@
 // Stack management for canvas stacking feature
 
-import { CanvasData, StackedCanvas, Point } from '../types';
+import { StackedCanvas, Point } from '../types';
 
 export class StackManager {
   private stack: StackedCanvas[] = [];
@@ -97,10 +97,6 @@ export class StackManager {
     return this.stack.sort((a, b) => a.stackOrder - b.stackOrder);
   }
 
-  // Get the active canvas
-  getActiveCanvas(): StackedCanvas | null {
-    return this.stack.find(canvas => canvas.isActive) || null;
-  }
 
   // Set active canvas
   setActiveCanvas(canvasId: string): boolean {

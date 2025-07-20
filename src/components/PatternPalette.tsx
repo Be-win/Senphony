@@ -1,5 +1,4 @@
 import React from 'react';
-import { PatternGenerator } from '../utils/PatternGenerator';
 
 interface PatternPaletteProps {
   onLoadDemoSong: () => void;
@@ -16,7 +15,6 @@ const PatternPalette: React.FC<PatternPaletteProps> = ({
   onLoadContinuousDemo,
   onLoadPattern
 }) => {
-  const patternGenerator = new PatternGenerator();
 
   // Available pattern generators
   const patterns = [

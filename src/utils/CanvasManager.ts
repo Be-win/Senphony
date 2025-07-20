@@ -47,9 +47,9 @@ export class CanvasManager {
   
   // Callbacks
   private callbacks = {
-    onStrokeStart: null as ((data: any) => void) | null,
-    onStrokeEnd: null as ((data: any) => void) | null,
-    onColorChange: null as ((data: any) => void) | null
+    onStrokeStart: null as ((data: { point: { x: number; y: number }; color: string; note: string; brushSize: number; brushType: string }) => void) | null,
+    onStrokeEnd: null as ((data: { stroke: Point[]; totalPoints: number }) => void) | null,
+    onColorChange: null as ((data: { color: string; note: string }) => void) | null
   };
 
   constructor(canvasElement: HTMLCanvasElement) {
@@ -138,9 +138,9 @@ export class CanvasManager {
     }, 250));
   }
 
-  private debounce(func: Function, wait: number) {
-    let timeout: NodeJS.Timeout;
-    return function executedFunction(...args: any[]) {
+  private debounce(func: (...args: unknown[]) => void, wait: number) {
+    let timeout: number;
+    return function executedFunction(...args: unknown[]) {
       const later = () => {
         clearTimeout(timeout);
         func(...args);
@@ -436,6 +436,7 @@ export class CanvasManager {
     }
   }
 
+  // Get drawing data for external use (used by useSensorySketchpad hook)
   getDrawingData(): Point[] {
     return [...this.drawingData];
   }

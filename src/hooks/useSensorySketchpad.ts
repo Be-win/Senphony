@@ -19,6 +19,7 @@ export const useSensorySketchpad = () => {
   const [notification, setNotification] = useState<Notification | null>(null);
   const [currentInstrument, setCurrentInstrument] = useState('piano');
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Stack management
   const {
@@ -41,6 +42,14 @@ export const useSensorySketchpad = () => {
   const patternGeneratorRef = useRef<PatternGenerator | null>(null);
   const playbackTimeoutRef = useRef<number | null>(null);
   const stackManagerRef = useRef<import('../utils/StackManager').StackManager | null>(null);
+
+  // Update achievements
+  const updateAchievements = useCallback(() => {
+    if (achievementManagerRef.current) {
+      const progress = achievementManagerRef.current.getProgress();
+      setAchievements(Object.values(progress.achievements));
+    }
+  }, []);
 
   // Initialize managers
   useEffect(() => {
@@ -112,15 +121,7 @@ export const useSensorySketchpad = () => {
       audioManagerRef.current?.destroy();
       canvasManagerRef.current?.destroy();
     };
-  }, []);
-
-  // Update achievements
-  const updateAchievements = useCallback(() => {
-    if (achievementManagerRef.current) {
-      const progress = achievementManagerRef.current.getProgress();
-      setAchievements(Object.values(progress.achievements));
-    }
-  }, []);
+  }, [brushSize, brushType, updateAchievements, volume]); // Remove currentColor and currentNote from dependencies
 
   // Handle color selection
   const handleColorSelect = useCallback(async (color: string, note: string) => {
@@ -190,7 +191,7 @@ export const useSensorySketchpad = () => {
         playbackTimeoutRef.current = null;
       }, duration * 1000);
     }
-  }, [isPlaying, updateAchievements]);
+  }, [isPlaying, updateAchievements, stopStackPlayback]);
 
   // Handle add to stack
   const handleAddToStack = useCallback(() => {
@@ -244,23 +245,33 @@ export const useSensorySketchpad = () => {
   // Handle clear canvas
   const handleClearCanvas = useCallback(() => {
     if (canvasManagerRef.current?.hasDrawing()) {
-      if (window.confirm('Are you sure you want to clear the canvas? This will erase your musical drawing.')) {
-        canvasManagerRef.current.clearCanvas();
-        setHasDrawing(false);
-        achievementManagerRef.current?.recordProgress('clear');
-        updateAchievements();
-        setNotification({
-          message: 'Canvas cleared! Start a new musical journey!',
-          type: 'info'
-        });
-      }
+      setShowConfirmModal(true);
     } else {
       setNotification({
         message: 'Canvas is already empty!',
         type: 'info'
       });
     }
+  }, []);
+
+  // Handle confirmation modal actions
+  const handleConfirmClear = useCallback(() => {
+    if (canvasManagerRef.current) {
+      canvasManagerRef.current.clearCanvas();
+      setHasDrawing(false);
+      achievementManagerRef.current?.recordProgress('clear');
+      updateAchievements();
+      setNotification({
+        message: 'Canvas cleared! Start a new musical journey!',
+        type: 'info'
+      });
+    }
+    setShowConfirmModal(false);
   }, [updateAchievements]);
+
+  const handleCancelClear = useCallback(() => {
+    setShowConfirmModal(false);
+  }, []);
 
   // Handle pattern loading
   const handlePatternLoad = useCallback(async (patternId: string) => {
@@ -268,8 +279,16 @@ export const useSensorySketchpad = () => {
 
     const pattern = patternGeneratorRef.current.generatePattern(patternId);
     if (pattern) {
+      // Convert PatternData to Point format
+      const convertedData = pattern.data.map(patternPoint => ({
+        ...patternPoint,
+        brushSize: 10,
+        brushType: 'smooth',
+        timestamp: Date.now()
+      }));
+
       canvasManagerRef.current?.clearCanvas();
-      canvasManagerRef.current?.loadDrawingData(pattern.data);
+      canvasManagerRef.current?.loadDrawingData(convertedData);
       setHasDrawing(true);
       await audioManagerRef.current?.playButtonSound();
       setNotification({
@@ -322,7 +341,7 @@ export const useSensorySketchpad = () => {
       canvasManagerRef.current.clearCanvas();
       canvasManagerRef.current.loadDrawingData(activeCanvas.data);
     }
-  }, [stack]);
+  }, [stack.find(c => c.isActive)?.id]); // Only depend on the active canvas ID, not the entire stack
 
   return {
     stack,
@@ -363,9 +382,13 @@ export const useSensorySketchpad = () => {
     handleVolumeChange,
     handlePlayToggle,
     handleClearCanvas,
-    // handlePatternLoad,
+    handlePatternLoad,
     handleGardenToggle,
     hideNotification,
-    handleInstrumentSelect
+    handleInstrumentSelect,
+    // Confirmation modal handlers
+    showConfirmModal,
+    handleConfirmClear,
+    handleCancelClear
   };
 };
