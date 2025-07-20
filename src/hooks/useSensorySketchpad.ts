@@ -17,6 +17,7 @@ export const useSensorySketchpad = () => {
   const [showGarden, setShowGarden] = useState(false);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [notification, setNotification] = useState<Notification | null>(null);
+  const [currentInstrument, setCurrentInstrument] = useState('piano');
 
   // Stack management
   const {
@@ -120,18 +121,18 @@ export const useSensorySketchpad = () => {
   }, []);
 
   // Handle color selection
-  const handleColorSelect = useCallback((color: string, note: string) => {
+  const handleColorSelect = useCallback(async (color: string, note: string) => {
     setCurrentColor(color);
     setCurrentNote(note);
     canvasManagerRef.current?.setColor(color, note);
-    audioManagerRef.current?.playColorSelectionSound(note);
+    await audioManagerRef.current?.playColorSelectionSound(note);
   }, []);
 
   // Handle brush selection
-  const handleBrushSelect = useCallback((newBrushType: string) => {
+  const handleBrushSelect = useCallback(async (newBrushType: string) => {
     setBrushType(newBrushType);
     canvasManagerRef.current?.setBrushType(newBrushType);
-    audioManagerRef.current?.playButtonSound();
+    await audioManagerRef.current?.playButtonSound();
   }, []);
 
   // Handle brush size change
@@ -175,7 +176,7 @@ export const useSensorySketchpad = () => {
       const canvasWidth = canvasRef.current?.width || 800;
       const canvasHeight = canvasRef.current?.height || 600;
 
-      const duration = audioManagerRef.current?.playCanvasMusic(
+      const duration = await audioManagerRef.current?.playCanvasMusic(
         drawingData,
         canvasWidth,
         canvasHeight,
@@ -251,7 +252,7 @@ export const useSensorySketchpad = () => {
   }, [updateAchievements]);
 
   // Handle pattern loading
-  const handlePatternLoad = useCallback((patternId: string) => {
+  const handlePatternLoad = useCallback(async (patternId: string) => {
     if (!patternGeneratorRef.current) return;
 
     const pattern = patternGeneratorRef.current.generatePattern(patternId);
@@ -259,7 +260,7 @@ export const useSensorySketchpad = () => {
       canvasManagerRef.current?.clearCanvas();
       canvasManagerRef.current?.loadDrawingData(pattern.data);
       setHasDrawing(true);
-      audioManagerRef.current?.playButtonSound();
+      await audioManagerRef.current?.playButtonSound();
       setNotification({
         message: `Loaded ${pattern.name}: ${pattern.description}`,
         type: 'info'
@@ -288,6 +289,12 @@ export const useSensorySketchpad = () => {
     }
   }, [removeFromStack]);
 
+  // Instrument selection handler
+  const handleInstrumentSelect = useCallback((instrumentId: string) => {
+    setCurrentInstrument(instrumentId);
+    audioManagerRef.current?.setInstrument(instrumentId);
+  }, []);
+
   return {
     isPlaying,
     hasDrawing,
@@ -299,6 +306,7 @@ export const useSensorySketchpad = () => {
     showGarden,
     achievements,
     notification,
+    currentInstrument,
     // Stack-related state
     stack,
     playbackState,
@@ -319,6 +327,7 @@ export const useSensorySketchpad = () => {
     handleClearCanvas,
     handlePatternLoad,
     handleGardenToggle,
-    hideNotification
+    hideNotification,
+    handleInstrumentSelect
   };
 };

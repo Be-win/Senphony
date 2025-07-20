@@ -1,10 +1,14 @@
 // Audio system for Sensory Sketchpad using Web Audio API
 
+import { ClassicalInstruments } from './ClassicalInstruments';
+
 export class AudioManager {
   private audioContext: AudioContext | null = null;
   private gainNode: GainNode | null = null;
   private isInitialized = false;
   private volume = 0.7;
+  private classicalInstruments: ClassicalInstruments;
+  private currentInstrument = 'piano';
   
   // Musical note frequencies (pentatonic scale)
   private noteFrequencies = {
@@ -19,6 +23,10 @@ export class AudioManager {
   private activeOscillators = new Map();
   private scheduledNotes: any[] = [];
 
+  constructor() {
+    this.classicalInstruments = new ClassicalInstruments();
+  }
+
   async initialize() {
     if (this.isInitialized) return;
     
@@ -30,6 +38,7 @@ export class AudioManager {
       this.gainNode.connect(this.audioContext.destination);
       this.gainNode.gain.setValueAtTime(this.volume, this.audioContext.currentTime);
       
+      await this.classicalInstruments.initialize(this.audioContext, this.gainNode);
       this.isInitialized = true;
       console.log('Audio system initialized successfully');
     } catch (error) {
@@ -51,69 +60,20 @@ export class AudioManager {
     }
   }
 
-  playNote(note: string, duration = 0.3, delay = 0) {
-    if (!this.isInitialized || !this.noteFrequencies[note as keyof typeof this.noteFrequencies] || !this.audioContext || !this.gainNode) {
-      return;
-    }
+  setInstrument(instrumentId: string) {
+    this.currentInstrument = instrumentId;
+    this.classicalInstruments.setInstrument(instrumentId);
+  }
+  getCurrentInstrument() {
+    return this.classicalInstruments.getInstrumentInfo(this.currentInstrument);
+  }
+  getAllClassicalInstruments() {
+    return this.classicalInstruments.getAllClassicalInstruments();
+  }
 
-    this.resumeContext();
-
-    const startTime = this.audioContext.currentTime + delay;
-    const endTime = startTime + duration;
-
-    // Create oscillator for the note
-    const oscillator = this.audioContext.createOscillator();
-    const noteGain = this.audioContext.createGain();
-    
-    // Set up the audio graph
-    oscillator.connect(noteGain);
-    noteGain.connect(this.gainNode);
-    
-    // Configure oscillator
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(this.noteFrequencies[note as keyof typeof this.noteFrequencies], startTime);
-    
-    // Add some harmonics for richer sound
-    const harmonic = this.audioContext.createOscillator();
-    const harmonicGain = this.audioContext.createGain();
-    harmonic.connect(harmonicGain);
-    harmonicGain.connect(this.gainNode);
-    
-    harmonic.type = 'triangle';
-    harmonic.frequency.setValueAtTime(this.noteFrequencies[note as keyof typeof this.noteFrequencies] * 2, startTime);
-    harmonicGain.gain.setValueAtTime(0.1, startTime);
-    
-    // Envelope (ADSR)
-    noteGain.gain.setValueAtTime(0, startTime);
-    noteGain.gain.linearRampToValueAtTime(0.3, startTime + 0.05); // Attack
-    noteGain.gain.linearRampToValueAtTime(0.2, startTime + 0.1);  // Decay
-    noteGain.gain.setValueAtTime(0.2, endTime - 0.1);             // Sustain
-    noteGain.gain.linearRampToValueAtTime(0, endTime);            // Release
-    
-    // Start and stop
-    oscillator.start(startTime);
-    harmonic.start(startTime);
-    oscillator.stop(endTime);
-    harmonic.stop(endTime);
-    
-    // Clean up
-    oscillator.onended = () => {
-      try {
-        oscillator.disconnect();
-        noteGain.disconnect();
-        harmonic.disconnect();
-        harmonicGain.disconnect();
-      } catch (e) {
-        // Nodes already disconnected
-      }
-    };
-    
-    return {
-      oscillator,
-      harmonic,
-      startTime,
-      endTime
-    };
+  async playNote(note: string, duration = 0.3, delay = 0) {
+    if (!this.isInitialized || !this.audioContext || !this.gainNode) return;
+    return await this.classicalInstruments.playNote(note, duration, delay);
   }
 
   playChord(notes: string[], duration = 0.5, delay = 0) {
@@ -129,7 +89,7 @@ export class AudioManager {
   }
 
   // Play notes based on canvas drawing data
-  playCanvasMusic(drawingData: any[], canvasWidth: number, canvasHeight: number, playbackDuration = 3) {
+  async playCanvasMusic(drawingData: any[], canvasWidth: number, canvasHeight: number, playbackDuration = 3) {
     if (!this.isInitialized || !drawingData.length) {
       return 0;
     }
@@ -173,7 +133,8 @@ export class AudioManager {
           y: avgY
         });
         
-        this.playNote(note, duration, delay);
+        // Use the classical instruments system for note playback
+        await this.classicalInstruments.playNote(note, duration, delay);
       }
     }
 
@@ -193,38 +154,15 @@ export class AudioManager {
   }
 
   // Create audio feedback for drawing actions
-  playDrawingFeedback(note: string, intensity = 1) {
+  async playDrawingFeedback(note: string, intensity = 1) {
     if (!this.isInitialized || !this.audioContext || !this.gainNode) return;
     
     const duration = 0.1;
-    const volume = Math.min(intensity * 0.3, 0.3);
     
     this.resumeContext();
     
-    const oscillator = this.audioContext.createOscillator();
-    const gainNode = this.audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(this.gainNode);
-    
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(this.noteFrequencies[note as keyof typeof this.noteFrequencies], this.audioContext.currentTime);
-    
-    gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
-    gainNode.gain.linearRampToValueAtTime(volume, this.audioContext.currentTime + 0.01);
-    gainNode.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + duration);
-    
-    oscillator.start();
-    oscillator.stop(this.audioContext.currentTime + duration);
-    
-    oscillator.onended = () => {
-      try {
-        oscillator.disconnect();
-        gainNode.disconnect();
-      } catch (e) {
-        // Already disconnected
-      }
-    };
+    // Use the classical instruments system for drawing feedback
+    await this.classicalInstruments.playNote(note, duration, 0);
   }
 
   // Play success sound for achievements
@@ -232,21 +170,24 @@ export class AudioManager {
     if (!this.isInitialized) return;
     
     const melody = ['C', 'E', 'G', 'C2'];
-    this.playMelody(melody, 0.2, 0.05);
+    melody.forEach((note, index) => {
+      const delay = index * 0.25; // 0.2 duration + 0.05 gap
+      this.classicalInstruments.playNote(note, 0.2, delay);
+    });
   }
 
   // Play button click feedback
-  playButtonSound() {
+  async playButtonSound() {
     if (!this.isInitialized) return;
     
-    this.playNote('A', 0.1);
+    await this.classicalInstruments.playNote('A', 0.1);
   }
 
   // Play color selection feedback
-  playColorSelectionSound(note: string) {
+  async playColorSelectionSound(note: string) {
     if (!this.isInitialized) return;
     
-    this.playNote(note, 0.15);
+    await this.classicalInstruments.playNote(note, 0.15);
   }
 
   destroy() {

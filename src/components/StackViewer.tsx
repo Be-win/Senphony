@@ -20,23 +20,35 @@ const StackViewer: React.FC<StackViewerProps> = ({
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [error, setError] = useState('');
 
   const handleStartEdit = (canvas: StackedCanvas) => {
     setEditingId(canvas.id);
     setEditingName(canvas.name);
+    setError('');
   };
 
   const handleSaveEdit = (canvasId: string) => {
-    if (editingName.trim()) {
-      onUpdateCanvasName(canvasId, editingName.trim());
+    const trimmedName = editingName.trim();
+    if (!trimmedName) {
+      setError('Canvas name cannot be empty');
+      return;
     }
+    if (trimmedName.length > 50) {
+      setError('Canvas name must be 50 characters or less');
+      return;
+    }
+    
+    onUpdateCanvasName(canvasId, trimmedName);
     setEditingId(null);
     setEditingName('');
+    setError('');
   };
 
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditingName('');
+    setError('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, canvasId: string) => {
@@ -44,6 +56,14 @@ const StackViewer: React.FC<StackViewerProps> = ({
       handleSaveEdit(canvasId);
     } else if (e.key === 'Escape') {
       handleCancelEdit();
+    }
+  };
+
+  const handleNameChange = (value: string) => {
+    setEditingName(value);
+    // Clear error when user starts typing
+    if (error) {
+      setError('');
     }
   };
 
@@ -99,22 +119,35 @@ const StackViewer: React.FC<StackViewerProps> = ({
               )}
               <div className="stack-order">{index + 1}</div>
               {currentPlayingId === canvas.id && (
-                <div className="playing-indicator" aria-hidden="true">▶️</div>
+                <div className="playing-indicator" aria-label="Currently playing">
+                  <span aria-hidden="true">▶️</span>
+                  <span className="sr-only">Playing</span>
+                </div>
               )}
             </div>
             
             <div className="stack-info">
               {editingId === canvas.id ? (
-                <input
-                  type="text"
-                  value={editingName}
-                  onChange={(e) => setEditingName(e.target.value)}
-                  onBlur={() => handleSaveEdit(canvas.id)}
-                  onKeyDown={(e) => handleKeyDown(e, canvas.id)}
-                  className="name-input"
-                  autoFocus
-                  aria-label="Edit canvas name"
-                />
+                <div className="name-edit-container">
+                  <input
+                    type="text"
+                    value={editingName}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                    onBlur={() => handleSaveEdit(canvas.id)}
+                    onKeyDown={(e) => handleKeyDown(e, canvas.id)}
+                    className={`name-input ${error ? 'error' : ''}`}
+                    autoFocus
+                    aria-label="Edit canvas name"
+                    aria-invalid={!!error}
+                    aria-describedby={error ? `error-${canvas.id}` : undefined}
+                    maxLength={50}
+                  />
+                  {error && (
+                    <div id={`error-${canvas.id}`} className="error-message" role="alert">
+                      {error}
+                    </div>
+                  )}
+                </div>
               ) : (
                 <h4 
                   className="canvas-name"

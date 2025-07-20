@@ -41,7 +41,10 @@ const SensorySketchpad: React.FC = () => {
     handleClearCanvas,
     handlePatternLoad,
     handleGardenToggle,
-    hideNotification
+    hideNotification,
+    // Instrument
+    currentInstrument,
+    handleInstrumentSelect
   } = useSensorySketchpad();
 
   // Handle keyboard shortcuts
@@ -91,12 +94,41 @@ const SensorySketchpad: React.FC = () => {
             handleGardenToggle();
           }
           break;
+        // Enhanced keyboard shortcuts for stack operations
+        case 'a':
+        case 'A':
+          if (event.ctrlKey && !event.altKey) {
+            event.preventDefault();
+            if (hasDrawing) {
+              handleAddToStack();
+            }
+          }
+          break;
+        case 'p':
+        case 'P':
+          if (event.ctrlKey && !event.altKey) {
+            event.preventDefault();
+            if (stack.length > 0) {
+              handlePlayStack();
+            }
+          }
+          break;
+        case 's':
+        case 'S':
+          if (event.ctrlKey && !event.altKey) {
+            event.preventDefault();
+            if (playbackState.isPlaying) {
+              // Stop playback - this would need to be implemented in the hook
+              // For now, we'll just prevent the default
+            }
+          }
+          break;
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handlePlayToggle, handleClearCanvas, handleColorSelect, showGarden, handleGardenToggle]);
+  }, [handlePlayToggle, handleClearCanvas, handleColorSelect, showGarden, handleGardenToggle, hasDrawing, stack.length, playbackState.isPlaying, handleAddToStack, handlePlayStack]);
 
   return (
     <>
@@ -136,6 +168,9 @@ const SensorySketchpad: React.FC = () => {
               onSetActiveCanvas={setActiveCanvas}
               onUpdateCanvasName={updateCanvasName}
               onClearStack={clearStack}
+              // Instrument props
+              currentInstrument={currentInstrument}
+              onInstrumentSelect={handleInstrumentSelect}
             />
 
             <CanvasSection

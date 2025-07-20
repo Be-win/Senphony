@@ -35,7 +35,7 @@ const Header: React.FC<HeaderProps> = ({
             max="100" 
             value={volume} 
             onChange={(e) => onVolumeChange(parseInt(e.target.value))}
-            aria-label="Volume"
+            aria-label="Adjust volume level"
           />
           <span className="volume-icon">🔊</span>
         </div>

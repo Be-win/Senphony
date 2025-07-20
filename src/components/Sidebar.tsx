@@ -2,6 +2,7 @@ import React from 'react';
 import ColorPalette from './ColorPalette';
 import PatternPalette from './PatternPalette';
 import StackViewer from './StackViewer';
+import InstrumentPalette from './InstrumentPalette';
 import { StackedCanvas, PlaybackState } from '../types';
 
 interface SidebarProps {
@@ -19,6 +20,9 @@ interface SidebarProps {
   onSetActiveCanvas: (canvasId: string) => void;
   onUpdateCanvasName: (canvasId: string, newName: string) => void;
   onClearStack: () => void;
+  // Instrument props
+  currentInstrument: string;
+  onInstrumentSelect: (instrumentId: string) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -32,10 +36,17 @@ const Sidebar: React.FC<SidebarProps> = ({
   onRemoveFromStack,
   onSetActiveCanvas,
   onUpdateCanvasName,
-  onClearStack
+  onClearStack,
+  // Instrument props
+  currentInstrument,
+  onInstrumentSelect
 }) => {
   return (
     <aside className="sidebar" role="complementary">
+      <InstrumentPalette
+        currentInstrument={currentInstrument}
+        onInstrumentSelect={onInstrumentSelect}
+      />
       <ColorPalette
         currentColor={currentColor}
         currentNote={currentNote}
