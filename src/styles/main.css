@@ -204,7 +204,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
-    width: 200px;
+    width: 260px;
     flex-shrink: 0;
 }
 
