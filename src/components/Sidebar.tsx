@@ -42,14 +42,17 @@ const Sidebar: React.FC<SidebarProps> = ({
         onColorSelect={onColorSelect}
       />
       <PatternPalette onPatternLoad={onPatternLoad} />
-      <StackViewer
-        stack={stack}
-        currentPlayingId={playbackState.currentCanvasId}
-        onRemoveFromStack={onRemoveFromStack}
-        onSetActiveCanvas={onSetActiveCanvas}
-        onUpdateCanvasName={onUpdateCanvasName}
-        onClearStack={onClearStack}
-      />
+      {/* Only show StackViewer if not playing */}
+      {!playbackState.isPlaying && (
+        <StackViewer
+          stack={stack}
+          currentPlayingId={playbackState.currentCanvasId}
+          onRemoveFromStack={onRemoveFromStack}
+          onSetActiveCanvas={onSetActiveCanvas}
+          onUpdateCanvasName={onUpdateCanvasName}
+          onClearStack={onClearStack}
+        />
+      )}
     </aside>
   );
 };

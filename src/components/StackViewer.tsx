@@ -87,48 +87,46 @@ const StackViewer: React.FC<StackViewerProps> = ({
             role="listitem"
             aria-label={`Canvas ${index + 1}: ${canvas.name}${canvas.isActive ? ' (active)' : ''}${currentPlayingId === canvas.id ? ' (playing)' : ''}`}
           >
-            <div className="stack-item-content">
-              <div className="stack-thumbnail">
-                {canvas.thumbnail ? (
-                  <img 
-                    src={canvas.thumbnail} 
-                    alt={`Thumbnail of ${canvas.name}`}
-                    className="thumbnail-image"
-                  />
-                ) : (
-                  <div className="thumbnail-placeholder">🎨</div>
-                )}
-                <div className="stack-order">{index + 1}</div>
-                {currentPlayingId === canvas.id && (
-                  <div className="playing-indicator" aria-hidden="true">▶️</div>
-                )}
-              </div>
-              
-              <div className="stack-info">
-                {editingId === canvas.id ? (
-                  <input
-                    type="text"
-                    value={editingName}
-                    onChange={(e) => setEditingName(e.target.value)}
-                    onBlur={() => handleSaveEdit(canvas.id)}
-                    onKeyDown={(e) => handleKeyDown(e, canvas.id)}
-                    className="name-input"
-                    autoFocus
-                    aria-label="Edit canvas name"
-                  />
-                ) : (
-                  <h4 
-                    className="canvas-name"
-                    onClick={() => handleStartEdit(canvas)}
-                    title="Click to edit name"
-                  >
-                    {canvas.name}
-                  </h4>
-                )}
-                <div className="canvas-meta">
-                  <span className="canvas-duration">{canvas.duration}s</span>
-                  <span className="canvas-points">{canvas.data.length} points</span>
-                </div>
+            <div className="stack-thumbnail">
+              {canvas.thumbnail ? (
+                <img 
+                  src={canvas.thumbnail} 
+                  alt={`Thumbnail of ${canvas.name}`}
+                  className="thumbnail-image"
+                />
+              ) : (
+                <div className="thumbnail-placeholder">🎨</div>
+              )}
+              <div className="stack-order">{index + 1}</div>
+              {currentPlayingId === canvas.id && (
+                <div className="playing-indicator" aria-hidden="true">▶️</div>
+              )}
+            </div>
+            
+            <div className="stack-info">
+              {editingId === canvas.id ? (
+                <input
+                  type="text"
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  onBlur={() => handleSaveEdit(canvas.id)}
+                  onKeyDown={(e) => handleKeyDown(e, canvas.id)}
+                  className="name-input"
+                  autoFocus
+                  aria-label="Edit canvas name"
+                />
+              ) : (
+                <h4 
+                  className="canvas-name"
+                  onClick={() => handleStartEdit(canvas)}
+                  title="Click to edit name"
+                >
+                  {canvas.name}
+                </h4>
+              )}
+              <div className="canvas-meta">
+                <span className="canvas-duration">{canvas.duration}s</span>
+                <span className="canvas-points">{canvas.data.length} points</span>
               </div>
             </div>
             

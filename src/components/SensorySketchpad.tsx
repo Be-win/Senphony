@@ -149,20 +149,30 @@ const SensorySketchpad: React.FC = () => {
               onPlayToggle={handlePlayToggle}
               onClearCanvas={handleClearCanvas}
               // Stack props
-              hasDrawing={hasDrawing}
               stackInfo={stackInfo}
               playbackState={playbackState}
               onAddToStack={handleAddToStack}
               onPlayStack={handlePlayStack}
             />
+
+            {/* Right sidebar for stack during playback */}
+            {playbackState.isPlaying && (
+              <aside className="right-sidebar" role="complementary">
+                <StackViewer
+                  stack={stack}
+                  currentPlayingId={playbackState.currentCanvasId}
+                  onRemoveFromStack={handleRemoveFromStack}
+                  onSetActiveCanvas={setActiveCanvas}
+                  onUpdateCanvasName={updateCanvasName}
+                  onClearStack={clearStack}
+                />
+                <PlaybackProgress
+                  playbackState={playbackState}
+                  stack={stack}
+                />
+              </aside>
+            )}
           </div>
-          
-          {playbackState.isPlaying && (
-            <PlaybackProgress
-              playbackState={playbackState}
-              stack={stack}
-            />
-          )}
         </main>
 
         {showGarden && (
